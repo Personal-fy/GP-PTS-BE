@@ -79,8 +79,8 @@ router.use(protect);
  */
 router
     .route('/')
-    .get(authorize('admin', 'teacher'), getStudents)
-    .post(authorize('admin'), createStudent);
+    .get(authorize('admin', 'teacher', 'registry'), getStudents)
+    .post(authorize('admin', 'registry'), createStudent);
 
 /**
  * @swagger
@@ -147,8 +147,8 @@ router
  */
 router
     .route('/:id')
-    .get(authorize('admin', 'teacher'), getStudent)
-    .put(authorize('admin'), updateStudent)
-    .delete(authorize('admin'), deleteStudent);
+    .get(authorize('admin', 'teacher', 'registry'), getStudent)
+    .put(authorize('admin', 'registry'), updateStudent)
+    .delete(authorize('admin', 'registry'), deleteStudent);
 
 module.exports = router;

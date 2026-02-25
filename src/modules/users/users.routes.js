@@ -12,7 +12,7 @@ const { protect, authorize } = require('../../middleware/authMiddleware');
 const router = express.Router();
 
 router.use(protect);
-router.use(authorize('admin')); // All user routes below require admin role
+router.use(authorize('admin', 'registry')); // All user routes below require admin or registry role
 
 /**
  * @swagger
