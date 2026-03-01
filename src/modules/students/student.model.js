@@ -22,6 +22,21 @@ const studentSchema = new mongoose.Schema(
             type: Date,
             required: true,
         },
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+        },
+        program: {
+            type: String,
+            trim: true,
+            default: 'General',
+        },
+        level: {
+            type: String,
+            trim: true,
+            default: '100 Level',
+        },
         parentIds: [
             {
                 type: mongoose.Schema.Types.ObjectId,

@@ -5,7 +5,7 @@ const Student = require('./student.model');
 // @access  Private/Admin|Teacher
 exports.getStudents = async (req, res, next) => {
     try {
-        const students = await Student.find().populate('parentIds', 'firstName lastName email').populate('courseIds', 'courseName');
+        const students = await Student.find(req.query).populate('parentIds', 'firstName lastName email').populate('courseIds', 'courseName');
         res.status(200).json({
             success: true,
             count: students.length,
