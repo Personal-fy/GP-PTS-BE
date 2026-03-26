@@ -6,7 +6,14 @@ const Attendance = require('./attendance.model');
 exports.getAttendanceRecords = async (req, res, next) => {
     try {
         const filter = {};
-        if (req.query.studentId) filter.studentId = req.query.studentId;
+        if (req.user.role === 'parent') {
+            if (!req.activeStudentId) {
+                return res.status(403).json({ success: false, message: 'Parent access is not scoped to a student' });
+            }
+            filter.studentId = req.activeStudentId;
+        } else if (req.query.studentId) {
+            filter.studentId = req.query.studentId;
+        }
 
         const attendance = await Attendance.find(filter).populate('studentId', 'firstName lastName');
 
@@ -25,7 +32,15 @@ exports.getAttendanceRecords = async (req, res, next) => {
 // @access  Private/Admin|Teacher|Parent
 exports.getAttendanceRecord = async (req, res, next) => {
     try {
-        const attendance = await Attendance.findById(req.params.id).populate('studentId', 'firstName lastName');
+        const baseQuery = Attendance.findById(req.params.id);
+        if (req.user.role === 'parent') {
+            if (!req.activeStudentId) {
+                return res.status(403).json({ success: false, message: 'Parent access is not scoped to a student' });
+            }
+            baseQuery.where({ studentId: req.activeStudentId });
+        }
+
+        const attendance = await baseQuery.populate('studentId', 'firstName lastName');
 
         if (!attendance) {
             return res.status(404).json({ success: false, message: 'Attendance record not found' });

@@ -1,9 +1,10 @@
 const jwt = require('jsonwebtoken');
 const User = require('../users/user.model');
+const Student = require('../students/student.model');
 
 // Generate JWT
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
+const generateToken = (payload) => {
+    return jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRE,
     });
 };
@@ -27,14 +28,35 @@ exports.login = async (req, res, next) => {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
-        // Check if password matches
+        // Parent login: password must match a linked student's matric number (Student.studentId)
+        if (user.role === 'parent') {
+            const student = await Student.findOne({
+                studentId: password,
+                parentIds: user._id
+            }).select('_id studentId firstName lastName');
+
+            if (!student) {
+                return res.status(401).json({ success: false, message: 'Invalid credentials' });
+            }
+
+            return sendTokenResponse(user, 200, res, {
+                activeStudent: {
+                    id: student._id,
+                    studentId: student.studentId,
+                    firstName: student.firstName,
+                    lastName: student.lastName
+                }
+            });
+        }
+
+        // Non-parent login: check bcrypt password
         const isMatch = await user.matchPassword(password);
 
         if (!isMatch) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
-        sendTokenResponse(user, 200, res);
+        return sendTokenResponse(user, 200, res);
     } catch (error) {
         next(error);
     }
@@ -56,9 +78,13 @@ exports.getMe = async (req, res, next) => {
 };
 
 // Helper function to get token from model, create cookie and send response
-const sendTokenResponse = (user, statusCode, res) => {
+const sendTokenResponse = (user, statusCode, res, options = {}) => {
     // Create token
-    const token = generateToken(user._id);
+    const tokenPayload = { id: user._id };
+    if (options.activeStudent?.id) {
+        tokenPayload.studentId = options.activeStudent.id;
+    }
+    const token = generateToken(tokenPayload);
 
     res.status(statusCode).json({
         success: true,
@@ -69,6 +95,7 @@ const sendTokenResponse = (user, statusCode, res) => {
             role: user.role,
             firstName: user.firstName,
             lastName: user.lastName
-        }
+        },
+        ...(options.activeStudent ? { activeStudent: options.activeStudent } : {})
     });
 };

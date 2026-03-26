@@ -6,7 +6,14 @@ const Discipline = require('./discipline.model');
 exports.getDisciplineRecords = async (req, res, next) => {
     try {
         const filter = {};
-        if (req.query.studentId) filter.studentId = req.query.studentId;
+        if (req.user.role === 'parent') {
+            if (!req.activeStudentId) {
+                return res.status(403).json({ success: false, message: 'Parent access is not scoped to a student' });
+            }
+            filter.studentId = req.activeStudentId;
+        } else if (req.query.studentId) {
+            filter.studentId = req.query.studentId;
+        }
 
         const records = await Discipline.find(filter)
             .populate('studentId', 'firstName lastName')
@@ -27,7 +34,15 @@ exports.getDisciplineRecords = async (req, res, next) => {
 // @access  Private/Admin|Teacher|Parent
 exports.getDisciplineRecord = async (req, res, next) => {
     try {
-        const record = await Discipline.findById(req.params.id)
+        const baseQuery = Discipline.findById(req.params.id);
+        if (req.user.role === 'parent') {
+            if (!req.activeStudentId) {
+                return res.status(403).json({ success: false, message: 'Parent access is not scoped to a student' });
+            }
+            baseQuery.where({ studentId: req.activeStudentId });
+        }
+
+        const record = await baseQuery
             .populate('studentId', 'firstName lastName')
             .populate('teacherId', 'firstName lastName');
 

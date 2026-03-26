@@ -6,7 +6,14 @@ const Grade = require('./grade.model');
 exports.getGrades = async (req, res, next) => {
     try {
         const filter = {};
-        if (req.query.studentId) filter.studentId = req.query.studentId;
+        if (req.user.role === 'parent') {
+            if (!req.activeStudentId) {
+                return res.status(403).json({ success: false, message: 'Parent access is not scoped to a student' });
+            }
+            filter.studentId = req.activeStudentId;
+        } else if (req.query.studentId) {
+            filter.studentId = req.query.studentId;
+        }
         if (req.query.courseId) filter.courseId = req.query.courseId;
 
         const grades = await Grade.find(filter)
@@ -28,7 +35,15 @@ exports.getGrades = async (req, res, next) => {
 // @access  Private/Admin|Teacher|Parent
 exports.getGrade = async (req, res, next) => {
     try {
-        const grade = await Grade.findById(req.params.id)
+        const baseQuery = Grade.findById(req.params.id);
+        if (req.user.role === 'parent') {
+            if (!req.activeStudentId) {
+                return res.status(403).json({ success: false, message: 'Parent access is not scoped to a student' });
+            }
+            baseQuery.where({ studentId: req.activeStudentId });
+        }
+
+        const grade = await baseQuery
             .populate('studentId', 'firstName lastName')
             .populate('courseId', 'courseName');
 
