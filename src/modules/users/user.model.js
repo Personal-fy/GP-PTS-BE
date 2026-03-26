@@ -37,6 +37,10 @@ const userSchema = new mongoose.Schema(
                 'Please add a valid email',
             ],
         },
+        department: {
+            type: String,
+            trim: true,
+        },
     },
     { timestamps: true }
 );
